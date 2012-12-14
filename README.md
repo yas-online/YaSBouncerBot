@@ -12,3 +12,5 @@ A project by YaS-Online.net. Providing free services for users on the web.
 
 -   Nico H. "Neico" @neic0
 -   David M. "nanashiRei" @nanashiRei
+
+OpenSource-Software :)
