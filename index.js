@@ -14,8 +14,8 @@ var utf8 = require("utf8"),     // UTF-8, for sane man.
 
 /** @constructor */
 var ZncBot = function (config) {
-    this.conf = this.prepareConfig(config); // Read our config abstraction
-    _.defaults(this.conf, require("defaults.json")); // Fill holes with defaults
+    this.conf = this.prepareConfig(config);             // Read our config abstraction
+    _.defaults(this.conf, require("defaults.json"));    // Fill holes with defaults
 };
 
 /** Prepare and, if necessary, read config from File */
