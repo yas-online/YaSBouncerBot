@@ -1,7 +1,7 @@
 {
     "nickserv": {
         "enabled": true,
-        "password": ""
+        "password": "SF/gJSW/gZqr96Q1YwPiAEABRaO6X5chysnGbsg1ug8="
     },
     "server": {
         "host": "irc.yas-online.net",
@@ -13,6 +13,10 @@
     },
     "bouncer": {
         "username": "znc-bot",
-        "password": "a4131e81a3b2d4a7b70e3b8929e091d95ae10bf2da965b6899cedf3f03c9b785"
-    }
+        "password": "gQG4lyTcxPnx6fdZ5s2PGco3HDZOMKxQOTnQKmpWq/A="
+    },
+    "shadowDb": "shadow.json",
+    "modules": [
+        "NickServ"
+    ]
 }
