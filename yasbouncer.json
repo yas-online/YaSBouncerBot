@@ -1,0 +1,14 @@
+{
+    "nickserv": {
+        "enabled": true,
+        "password": "3b19ecd69b492a40e3061f17786b33c28f504239"
+    },
+    "server": {
+        "host": "irc.yas-online.net",
+        "port": 9999,
+        "ssl": true,
+        "channel": [
+            "#yas-bouncer"
+        ]
+    }
+}

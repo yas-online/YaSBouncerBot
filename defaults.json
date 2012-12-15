@@ -1,0 +1,20 @@
+{
+    "nickserv": {
+        "enabled": false,
+        "password": ""
+    },
+    "server": {
+        "host": "irc.server.net",
+        "port": 6667,
+        "ssl": false,
+        "channel": [
+            ["#yas-internal", "key"],
+            "#yas-bouncer"
+        ]
+    },
+    "addons": [
+        "znc-base",
+        "user-manager",
+        "nickserv"
+    ]
+}
