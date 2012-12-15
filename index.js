@@ -9,8 +9,9 @@
 /** What do we need? */
 var utf8 = require("utf8"),     // UTF-8, for sane man.
     _ = require("underscore"),  // Everything you need to work with objects.
-    anyDb = require("any-db"),  // SQLite, MySQL, MSSQL ... whatever, it'll connect!
-    colors = require("colors"); // Because colors in console are more beautiful
+    irc = require("irc"),       // Easy to use and complete IRC Class
+    anyDb = require("any-db");  // SQLite, MySQL, MSSQL ... whatever, it'll connect!
+    require("colors");          // Because colors in console are more beautiful
 
 /** @constructor */
 var ZncBot = function (config) {
