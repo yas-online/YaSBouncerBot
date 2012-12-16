@@ -3,16 +3,17 @@ var _ = require("underscore"),
 
 /**
  * Provides the base for all {IrcBot} modules
- * @constructor
  * @param ircBot {IrcBot}
  */
-var IrcBotModule = function (ircBot) {
+function IrcBotModule (ircBot) {
     this.parent = ircBot;
     this.name = "";
     this.description = "";
     this.active = false;
     this.events = {};
-};
+}
+
+exports.IrcBotModule = IrcBotModule;
 
 IrcBotModule.prototype.setActive = function (active) {
     if (typeof active == "boolean") {
