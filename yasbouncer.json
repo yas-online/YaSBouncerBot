@@ -1,5 +1,7 @@
 {
     "nickname": "[YaS]Bouncer",
+    "raweventlog": false,
+    "rawsendlog": true,
     "nickserv": {
         "enabled": true,
         "password": "SF/gJSW/gZqr96Q1YwPiAEABRaO6X5chysnGbsg1ug8="
