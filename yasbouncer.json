@@ -18,6 +18,7 @@
     },
     "shadowDb": "shadow.json",
     "addons": [
-        "NickServ"
+        "NickServ",
+        "AutoRejoin"
     ]
 }

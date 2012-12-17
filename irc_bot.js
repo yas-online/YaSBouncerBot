@@ -79,7 +79,7 @@ IrcBot.prototype.prepareConfig = function (configuration) {
         port: configuration.server.port,
         debug: false,
         showErrors: false,
-        autoRejoin: true,
+        autoRejoin: false,
         autoConnect: false,
         channels: [],
         secure: configuration.server.ssl,
@@ -168,7 +168,7 @@ IrcBot.prototype.logSuccess = function (message) {
 
 IrcBot.prototype.logIrcCommand = function (command, params) {
     delete arguments[0];
-    util.log((command + " > ").red.underline + _.values(arguments).join(" "));
+    util.log(command.red.underline.bold + " > " + _.values(arguments).join(" "));
 };
 
 // Mappers
@@ -193,9 +193,27 @@ IrcBot.prototype.sendRaw = function (command, args) {
     this.client.send.apply(this, arguments);
 };
 
+// Connection and management
+
+IrcBot.prototype.connected = function () {
+    var self = this;
+    _.each(this.conf.server.channel, function (channel) {
+        if (typeof channel == "object")
+            channel = channel.join(" ");
+
+        self.client.join(channel);
+    });
+};
+
 /** Runs the bot, including establishing a connection to IRC */
 IrcBot.prototype.run = function () {
-    this.client.connect();
+    var self = this;
+    process.on("SIGINT", function () {
+        self.client.disconnect("CTRL + C received, good bye.", function () {
+            process.exit(0);
+        });
+    });
+    this.client.connect(5, function () { self.connected(); });
 };
 
 /* Example usage:
