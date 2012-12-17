@@ -89,7 +89,8 @@ IrcBotModule.prototype.registerEvents = function () {
                 }
                 self.events[event] = function () {
                     if (self[member].apply(self, arguments) === true) {
-                        self.logNotice("Event " + event.red + " fired. [arguments: " + JSON.stringify(arguments).grey + " ]");
+                        self.logNotice("Event " + event.yellow.bold + "::" + self.modName.magenta.bold
+                           + "." + member.cyan.bold + ("(" + _.values(arguments).join(", ") + ")").grey);
                     }
                 };
                 self.parent.client.addListener(event, self.events[event]);

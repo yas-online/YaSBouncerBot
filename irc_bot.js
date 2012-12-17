@@ -47,19 +47,23 @@ function IrcBot (config) {
     this.addons = {};
     /** Create our irc client */
     this.client = new irc.Client(this.conf.server.host, this.conf.nickname, this.conf.clientConfig);
+    this.client.addListener("error", function (err) {
+        self.logError("Internal Error!", err);
+    });
 
     /**
      * Evil hook for logging
      * @author Mortchek
      * @link irc://irc.freenode.net/##javascript
      */
-    this.client.send = intercept(this.client.send, this.logIrcCommand);
-
-    /** Load all modules */
-    _.each(this.conf.addons, function (module) {
-        var fileName = "Module." + module + ".js";
-        self.loadModule(fileName);
-    });
+    if (this.conf.rawsendlog) {
+        this.client.send = intercept(this.client.send, this.logIrcCommand);
+    }
+    if (this.conf.raweventlog) {
+        this.client.addListener("raw", function (message) {
+            self.logEvent(message.command, message);
+        });
+    }
 
     this.logNotice( "Bot Configured! Configured Nickname: " + this.conf.nickname );
     this.logNotice( "Server: %s:%d %s", this.conf.server.host, this.conf.server.port, (this.conf.server.ssl ? "SSL".green : "unencrypted".red) );
@@ -81,7 +85,7 @@ IrcBot.prototype.prepareConfig = function (configuration) {
         showErrors: false,
         autoRejoin: false,
         autoConnect: false,
-        channels: [],
+        channels: configuration.server.channel,
         secure: configuration.server.ssl,
         selfSigned: true,
         certExpired: true,
@@ -126,14 +130,14 @@ IrcBot.prototype.message = function (target, message) {
     if (typeof target == "string") {
         if (target == "all") {
             _.each(this.client.chans, function (to) {
-                self.client.say(to, message);
+                self.say(to, message);
             });
         } else {
-            this.client.say(target, message);
+            this.say(target, message);
         }
     } else if (_.isArray(target)) {
         _.each(target, function (to) {
-            self.client.say(to, message);
+            self.say(to, message);
         });
     } else {
         this.logWarn("Failed to deliver '" + message + "' to type " + typeof target + "!?");
@@ -171,38 +175,44 @@ IrcBot.prototype.logIrcCommand = function (command, params) {
     util.log(command.red.underline.bold + " > " + _.values(arguments).join(" "));
 };
 
+IrcBot.prototype.logEvent = function (command, message) {
+    util.log("Event > ".magenta.bold + ('' + command).cyan.bold.underline + (": " + JSON.stringify(message.args)).grey);
+};
+
 // Mappers
 
 IrcBot.prototype.ctcp = function (to, type, text) {
-    this.logIrcCommand("ctcp", [to, type, text]);
+    //this.logIrcCommand("ctcp", [to, type, text]);
     this.client.ctcp(to, type, text);
 };
 
 IrcBot.prototype.notice = function (target, text) {
-    this.logIrcCommand("notice", [target, text]);
+    //this.logIrcCommand("notice", [target, text]);
     this.client.notice(target, text);
 };
 
 IrcBot.prototype.say = function (target, text) {
-    this.logIrcCommand("say", [target, text]);
+    //this.logIrcCommand("say", [target, text]);
     this.client.say(target, text);
 };
 
 IrcBot.prototype.sendRaw = function (command, args) {
-    this.logIrcCommand.apply(this, arguments);
+    //this.logIrcCommand.apply(this, arguments);
     this.client.send.apply(this, arguments);
 };
 
 // Connection and management
 
 IrcBot.prototype.connected = function () {
-    var self = this;
-    _.each(this.conf.server.channel, function (channel) {
-        if (typeof channel == "object")
-            channel = channel.join(" ");
-
-        self.client.join(channel);
-    });
+//    var self = this;
+//    _.each(this.conf.server.channel, function (channel) {
+//        if (typeof channel == "object")
+//            channel = channel.join(" ");
+//
+//        setTimeout(function () {
+//            self.client.join(channel);
+//        }, 2000);
+//    });
 };
 
 /** Runs the bot, including establishing a connection to IRC */
@@ -213,6 +223,13 @@ IrcBot.prototype.run = function () {
             process.exit(0);
         });
     });
+
+    /** Load all modules */
+    _.each(this.conf.addons, function (module) {
+        var fileName = "Module." + module + ".js";
+        self.loadModule(fileName);
+    });
+
     this.client.connect(5, function () { self.connected(); });
 };
 
