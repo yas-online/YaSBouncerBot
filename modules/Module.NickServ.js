@@ -5,35 +5,72 @@ var util = require("util"),
  * NickServ Module
  * @param ircBot {IrcBot}
  */
-function ModNickServ (ircBot) {
-    this(ircBot);
-    this.name = "ModNickServ";
-    this.description = "Provides authentication with NickServ";
-    this.patterns = {
-        notice: new RegExp(/identify/i),
-        login: new RegExp(/passwor(d|t) (accepted|akzeptiert)/i)
-    };
+function NickServ (ircBot) {
+    this.constructor(ircBot);
     this.notified = false;
     this.loggedIn = false;
     this.nickserv = "NickServ";
     this.password = this.parent.passwd.getPassPhrase(this.parent.conf.nickserv.password);
 }
-ModNickServ.prototype = new modules.IrcBotModule();
-exports.mod = ModNickServ;
 
-/** Inherit the module base */
-//util.inherits(ModNickServ, modules.IrcBotModule);
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// IrcBotModule Indentification
 
-ModNickServ.prototype.onNotice = function (nick, to, text, message) {
-    if (nick == this.nickserv) {
-        if (!this.notified && this.patterns.notice.match(text)) {
-            this.parent.say(nick, "IDENTIFY " + this.password);
-            this.parent.logNotice(this.name + ": Got notified by NickServ. INDENTIFY command has been send");
-            this.notified = true;
-        }
-        if (!this.loggedIn && this.patterns.login.match(text)) {
-            this.parent.logSuccess(this.name + ": NickServ confirmed our login!");
-        }
-    }
+NickServ.prototype = new modules.IrcBotModule();
+exports.NickServ = NickServ;
+
+exports.modName =
+    NickServ.prototype.modName = "NickServ";
+exports.description =
+    NickServ.prototype.description = "Provides authentication with NickServ";
+exports.version =
+    NickServ.prototype.version = "1.0.0";
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+NickServ.prototype.patterns = {
+    notice: new RegExp("/identify/", "i"),
+    login: new RegExp("/passwor(d|t) (accepted|akzeptiert)/", "i"),
+    loginStatus: new RegExp("/^status [^\\s]+ 3/", "i"),
+    notRegistered: new RegExp("/^status [^\\s]+ 0/", "i")
 };
 
+NickServ.prototype.onMotd = function (message) {
+    this.logNotice("Sending STATUS command to NickServ.");
+    //this.parent.message(this.nickserv, "STATUS");
+};
+
+NickServ.prototype.onNotice = function (nick, to, text, message) {
+    if (nick && nick == this.nickserv) {
+        if (!this.notified && !this.loggedIn && this.patterns.notRegistered.test(text)) {
+            this.logNotice("Nickname wasn't registered, sending REGISTER command to NickServ.");
+            this.parent.message(nick, "REGISTER " + this.password + " " + this.parent.conf.nickname + "@yas-online.net");
+            this.notified = true;
+        }
+        if (!this.notified && this.patterns.notice.test(text)) {
+            this.logNotice("Got notified by NickServ. INDENTIFY command has been send");
+            this.parent.message(nick, "IDENTIFY " + this.password);
+            this.notified = true;
+        }
+        if (!this.loggedIn && this.patterns.login.test(text)) {
+            this.logSuccess("NickServ confirmed our login!");
+            this.loggedIn = true;
+        }
+        return true;
+    }
+    return false;
+};
+
+NickServ.prototype.onCtcpVersion = function (from, to) {
+    if (to == this.parent.me) {
+        this.parent.ctcp(from, "notice", "VERSION YaSBouncerBot." + this.modName + ":Version(" + this.version + ")");
+        return true;
+    }
+    return false;
+};
+
+NickServ.prototype.afterDisabled = function () {
+    /** Reset Module status on disable */
+    this.notified = false;
+    this.loggedIn = false;
+};

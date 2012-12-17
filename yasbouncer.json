@@ -17,7 +17,7 @@
         "password": "gQG4lyTcxPnx6fdZ5s2PGco3HDZOMKxQOTnQKmpWq/A="
     },
     "shadowDb": "shadow.json",
-    "modules": [
+    "addons": [
         "NickServ"
     ]
 }

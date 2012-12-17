@@ -12,9 +12,26 @@ var utf8 = require("utf8"),             // UTF-8, for sane man.
     _ = require("underscore"),          // Everything you need to work with objects.
     irc = require("irc"),               // Easy to use and complete IRC Class
     anyDb = require("any-db"),          // SQLite, MySQL, MSSQL ... whatever, it'll connect!
-    shadowDb = require("shadow-db"),    // Password code hinting
-    modules = require("./modules/module.js"); // see file
+    shadowDb = require("shadow-db");    // Password code hinting
 require("colors");                      // Because colors in console are more beautiful
+
+var moduleCache = {};
+
+/**
+ * Intercepts function calls
+ * @author Mortchek
+ * @link irc://irc.freenode.net/##javascript
+ * @param old {function}
+ * @param receiver {function}
+ * @return {Function}
+ */
+var intercept = function (old, receiver) {
+    return function () {
+        receiver.apply(this, arguments);
+        old.apply(this, arguments);
+    }
+};
+
 
 function IrcBot (config) {
     // JavaScript stuff
@@ -27,18 +44,28 @@ function IrcBot (config) {
     /** Open the shadowDb for password resolving */
     this.passwd = new shadowDb(this.conf.shadowDb, __dirname);
     /** Stores all loaded modules */
-    this.modules = {};
+    this.addons = {};
     /** Create our irc client */
     this.client = new irc.Client(this.conf.server.host, this.conf.nickname, this.conf.clientConfig);
 
+    /**
+     * Evil hook for logging
+     * @author Mortchek
+     * @link irc://irc.freenode.net/##javascript
+     */
+    this.client.send = intercept(this.client.send, this.logIrcCommand);
+
     /** Load all modules */
-    _.each(this.conf.modules, function (module) {
+    _.each(this.conf.addons, function (module) {
         var fileName = "Module." + module + ".js";
         self.loadModule(fileName);
     });
 
-    this.logNotice( "Bot Configured! Nickname: " + this.conf.nickname );
-};
+    this.logNotice( "Bot Configured! Configured Nickname: " + this.conf.nickname );
+    this.logNotice( "Server: %s:%d %s", this.conf.server.host, this.conf.server.port, (this.conf.server.ssl ? "SSL".green : "unencrypted".red) );
+}
+
+exports.IrcBot = IrcBot;
 
 /** Prepare and, if necessary, read config from File */
 IrcBot.prototype.prepareConfig = function (configuration) {
@@ -67,6 +94,10 @@ IrcBot.prototype.prepareConfig = function (configuration) {
     return configuration;
 };
 
+IrcBot.prototype.__defineGetter__("me", function () {
+    return this.client.opt.nick;
+});
+
 /**
  * Load a module safely
  * @param moduleFile {string} Filename of the module
@@ -74,12 +105,11 @@ IrcBot.prototype.prepareConfig = function (configuration) {
  */
 IrcBot.prototype.loadModule = function (moduleFile) {
     try {
-        var botModule = require("./modules/" + moduleFile).mod;
-        var mod = new botModule(this);
-        if (mod.name && mod.description) {
-            this.modules[mod.name] = mod;
-            this.modules[mod.name].setActive(true);
-            this.logNotice(mod.name + ": Loaded.");
+        var mod = moduleCache[moduleFile] = require("./modules/" + moduleFile);
+        if (mod.modName) {
+            this.addons[mod.modName] = new mod[mod.modName](this);
+            this.addons[mod.modName].logNotice("Registered and loaded.");
+            this.addons[mod.modName].setActive(true);
             return true;
         } else {
             this.logWarn(moduleFile + ": Isn't an instance of IrcBotModule - not loading.");
@@ -91,20 +121,76 @@ IrcBot.prototype.loadModule = function (moduleFile) {
     }
 };
 
+IrcBot.prototype.message = function (target, message) {
+    var self = this;
+    if (typeof target == "string") {
+        if (target == "all") {
+            _.each(this.client.chans, function (to) {
+                self.client.say(to, message);
+            });
+        } else {
+            this.client.say(target, message);
+        }
+    } else if (_.isArray(target)) {
+        _.each(target, function (to) {
+            self.client.say(to, message);
+        });
+    } else {
+        this.logWarn("Failed to deliver '" + message + "' to type " + typeof target + "!?");
+    }
+};
+
+IrcBot.prototype.moduleEnabled = function (ircBotModule) {
+    ircBotModule.logSuccess("Enabled successfully and events registered.");
+};
+
+IrcBot.prototype.moduleDisabled = function (ircBotModule) {
+    ircBotModule.logSuccess("Disabled successfully and events un-registered.");
+};
+
 IrcBot.prototype.logNotice = function (message) {
-    util.log("Notice > ".cyan + message);
+    util.log("Notice > ".cyan + util.format.apply(this, arguments));
 };
 
 IrcBot.prototype.logWarn = function (message) {
-    util.log("Warning ! ".yellow + message);
+    util.log("Warning ! ".yellow + util.format.apply(this, arguments));
 };
 
 IrcBot.prototype.logError = function (message, err) {
-    util.log("Error ! ".red + message + ": " + err.toString());
+    err = arguments[arguments.length - 1];
+    delete arguments[arguments.length - 1];
+    util.log("Error ! ".red + util.format.apply(this, arguments) + ": " + err.toString());
 };
 
 IrcBot.prototype.logSuccess = function (message) {
-    util.log("Success > ".magenta + message.green);
+    util.log("Success > ".green.bold + util.format.apply(this, arguments));
+};
+
+IrcBot.prototype.logIrcCommand = function (command, params) {
+    delete arguments[0];
+    util.log((command + " > ").red.underline + _.values(arguments).join(" "));
+};
+
+// Mappers
+
+IrcBot.prototype.ctcp = function (to, type, text) {
+    this.logIrcCommand("ctcp", [to, type, text]);
+    this.client.ctcp(to, type, text);
+};
+
+IrcBot.prototype.notice = function (target, text) {
+    this.logIrcCommand("notice", [target, text]);
+    this.client.notice(target, text);
+};
+
+IrcBot.prototype.say = function (target, text) {
+    this.logIrcCommand("say", [target, text]);
+    this.client.say(target, text);
+};
+
+IrcBot.prototype.sendRaw = function (command, args) {
+    this.logIrcCommand.apply(this, arguments);
+    this.client.send.apply(this, arguments);
 };
 
 /** Runs the bot, including establishing a connection to IRC */
@@ -118,6 +204,3 @@ IrcBot.prototype.run = function () {
  myBot.run();
 
  */
-
-exports.IrcBot = IrcBot;
-exports.IrcBotModule = modules.IrcBotModule;
