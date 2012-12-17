@@ -29,30 +29,32 @@ exports.version =
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 NickServ.prototype.patterns = {
-    notice: new RegExp("/identify/", "i"),
-    login: new RegExp("/passwor(d|t) (accepted|akzeptiert)/", "i"),
-    loginStatus: new RegExp("/^status [^\\s]+ 3/", "i"),
-    notRegistered: new RegExp("/^status [^\\s]+ 0/", "i")
+    notice: /identify/i,
+    login: /passwor(d|t) (accepted|akzeptiert)/i,
+    loginStatus: /^status [^\s]+ 3/i,
+    notRegistered: /^status [^\s]+ 0/i
 };
 
-NickServ.prototype.onMotd = function (message) {
+NickServ.prototype.onRegistered = function (message) {
     this.logNotice("Sending STATUS command to NickServ.");
-    //this.parent.message(this.nickserv, "STATUS");
+    this.parent.message(this.nickserv, "STATUS");
 };
 
 NickServ.prototype.onNotice = function (nick, to, text, message) {
+    var self = this;
     if (nick && nick == this.nickserv) {
-        if (!this.notified && !this.loggedIn && this.patterns.notRegistered.test(text)) {
+        if (!this.notified && !this.loggedIn && text.match(this.patterns.notRegistered)) {
             this.logNotice("Nickname wasn't registered, sending REGISTER command to NickServ.");
-            this.parent.message(nick, "REGISTER " + this.password + " " + this.parent.conf.nickname + "@yas-online.net");
+            this.parent.message(nick, "REGISTER " + this.password + " " + this.parent.me.replace(/[^a-z]+/g,"") + "@yas-online.net");
+            this.parent.message(nick, "STATUS");
             this.notified = true;
         }
-        if (!this.notified && this.patterns.notice.test(text)) {
+        if (!this.notified && text.match(this.patterns.notice)) {
             this.logNotice("Got notified by NickServ. INDENTIFY command has been send");
             this.parent.message(nick, "IDENTIFY " + this.password);
             this.notified = true;
         }
-        if (!this.loggedIn && this.patterns.login.test(text)) {
+        if (!this.loggedIn && (text.match(this.patterns.login) || text.match(this.patterns.loginStatus))) {
             this.logSuccess("NickServ confirmed our login!");
             this.loggedIn = true;
         }
