@@ -1,4 +1,5 @@
 var util = require("util"),
+    _ = require("underscore"),
     modules = require("./module.js");
 
 /**
@@ -72,7 +73,7 @@ AutoRejoin.prototype.afterEnabled = function () {
     setInterval(function () {
         self.rejoinChannels();
     }, this.interval);
-    this.logSuccess("Interval started at " + this.interval.cyan.bold + " msec");
+    this.logSuccess("Interval started at " + this.interval.toString().cyan.bold + " msec");
 };
 
 AutoRejoin.prototype.afterDisable = function () {
