@@ -15,7 +15,7 @@ function AutoRejoin (ircBot) {
 // IrcBotModule Indentification
 
 AutoRejoin.prototype = new modules.IrcBotModule();
-exports.NickServ = AutoRejoin;
+exports.AutoRejoin = AutoRejoin;
 
 exports.modName =
     AutoRejoin.prototype.modName = "AutoRejoin";
