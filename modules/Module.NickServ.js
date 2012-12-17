@@ -56,6 +56,7 @@ NickServ.prototype.onNotice = function (nick, to, text, message) {
         }
         if (!this.loggedIn && (text.match(this.patterns.login) || text.match(this.patterns.loginStatus))) {
             this.logSuccess("NickServ confirmed our login!");
+            this.parent.message(nick, "UPDATE");
             this.loggedIn = true;
         }
         return true;
